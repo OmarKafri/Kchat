@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
+
 export async function POST(req: Request) {
   try {
     const { user_id } = await req.json();
@@ -23,3 +24,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

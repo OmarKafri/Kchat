@@ -1,6 +1,3 @@
-"use client";
-
-import { UserInfromation } from "@/types/user";
 import { Skeleton } from "./ui/skeleton";
 import { User } from "next-auth";
 import { PencilLine } from "lucide-react";
@@ -10,12 +7,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Input } from "./ui/input";
+import { useRouter } from "next/navigation";
 
 type ContactsTopProps = {
   user?: User;
 };
 
 export function ContactsTop({ user }: ContactsTopProps) {
+  const router = useRouter();
+
   if (!user) {
     return (
       <div className="flex gap-1.5">
@@ -24,6 +24,11 @@ export function ContactsTop({ user }: ContactsTopProps) {
       </div>
     );
   }
+
+  function handleProfileClicked() {
+    router.push("/profile");
+  }
+
   return (
     <div className="text-white flex flex-col gap-3">
       <div className="flex justify-between">
@@ -32,11 +37,14 @@ export function ContactsTop({ user }: ContactsTopProps) {
           {user?.name ?? "No user"}
         </h1>
         <Tooltip>
-          <TooltipTrigger className="p-2 rounded-md hover:bg-gray-700">
+          <TooltipTrigger
+            onClick={handleProfileClicked}
+            className="p-2 rounded-md hover:bg-gray-700"
+          >
             <PencilLine />
           </TooltipTrigger>
           <TooltipContent>
-            <p>New message</p>
+            <p>Edit Profile</p>
           </TooltipContent>
         </Tooltip>
       </div>
