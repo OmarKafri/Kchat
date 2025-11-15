@@ -1,3 +1,5 @@
+import { getApiBaseUrl } from "@/lib/api-base";
+
 type coverstaion = {
   id: string;
   createdAt: string;
@@ -15,7 +17,7 @@ export async function addConverstaion(
   reciver: string
 ): Promise<{ success: boolean; data?: coverstaion; error?: string }> {
   try {
-    const response = await fetch("http://localhost:3000/api/conversation", {
+    const response = await fetch(`${getApiBaseUrl()}/api/conversation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

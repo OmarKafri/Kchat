@@ -12,13 +12,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
 type UserInfromationProps = {
   reciver_id: string;
 };
-
 const buttons = [
-  { desciption: "Audio Call", icon: <Phone size={22} /> },
   { desciption: "Video Call", icon: <Video size={22} /> },
   { desciption: "Conversation Information", icon: <CircleAlert size={22} /> },
 ];
@@ -27,7 +24,6 @@ export function UserInfromation({ reciver_id }: UserInfromationProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [user, setUser] = useState<UserWithoutId>();
-
   const gettingUser = async () => {
     try {
       const result = await getOneContcat(reciver_id);
@@ -53,8 +49,12 @@ export function UserInfromation({ reciver_id }: UserInfromationProps) {
     gettingUser();
   }, []);
 
-   function version2() {
+  function version2() {
     toast.info("Will be Added later");
+  }
+
+  function audioCallClicked() {
+    window.open(`/audio-call?receiverId=${reciver_id}`);
   }
 
   if (isLoading)
@@ -98,8 +98,18 @@ export function UserInfromation({ reciver_id }: UserInfromationProps) {
           <p className="text-sm text-gray-400">{user?.email}</p>
         </div>
       </div>
-
       <div className="flex items-center gap-5 mr-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={audioCallClicked} className="text-gray-400 hover:text-gray-200 text-4xl p-0 cursor-pointer">
+              <Phone size={22} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Audio call</p>
+          </TooltipContent>
+        </Tooltip>
+
         {buttons.map((btn, i) => (
           <Tooltip key={i}>
             <TooltipTrigger asChild>

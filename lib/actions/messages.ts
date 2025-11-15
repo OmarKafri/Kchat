@@ -1,4 +1,5 @@
 import { messages } from "@/types/user";
+import { getApiBaseUrl } from "@/lib/api-base";
 
 export async function getMessagesForConversation(convo_id: string): Promise<{
   success: boolean;
@@ -7,7 +8,7 @@ export async function getMessagesForConversation(convo_id: string): Promise<{
 }> {
   try {
     const response = await fetch(
-      `http://localhost:3000/api/messages?conversationId=${convo_id}`,
+      `${getApiBaseUrl()}/api/messages?conversationId=${convo_id}`,
       {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -28,7 +29,7 @@ export async function createMessage(
   convoId: string
 ): Promise<{ success: boolean; error?: string; data?: messages }> {
   try {
-    const response = await fetch("http://localhost:3000/api/messages", {
+    const response = await fetch(`${getApiBaseUrl()}/api/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -50,7 +51,7 @@ export async function unreadMessages(
   user_id: string
 ): Promise<{ success: boolean; data?: string[]; error?: string }> {
   try {
-    const response = await fetch("http://localhost:3000/api/messages/unread", {
+    const response = await fetch(`${getApiBaseUrl()}/api/messages/unread`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -73,7 +74,7 @@ export async function readMessage(
   conversation_Idd :string
 ): Promise<{ success: boolean ; error?: string }> {
   try {
-    const response = await fetch("http://localhost:3000/api/messages/read", {
+    const response = await fetch(`${getApiBaseUrl()}/api/messages/read`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

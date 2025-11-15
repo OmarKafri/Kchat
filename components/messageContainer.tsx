@@ -75,6 +75,9 @@ export function MessageContainer({
 
   useEffect(() => {
     if (!user_id || !conversation_id) return;
+    
+    socket.emit("join_conversation", conversation_id);
+    
     getMessages();
     // markMessages();
     socket.emit("message_read",{reciver_id,conversation_id});
@@ -85,6 +88,7 @@ export function MessageContainer({
     });
 
     return () => {
+      socket.emit("leave_conversation", conversation_id);
       socket.off("receive_message");
     };
   }, [conversation_id,user_id]);

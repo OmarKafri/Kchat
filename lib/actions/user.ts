@@ -6,6 +6,7 @@ import {
   LoginInfoEntred,
   UserWithoutId,
 } from "@/types/user";
+import { getApiBaseUrl } from "@/lib/api-base";
 
 
 export async function Registeration(info: RegisterationEntred): Promise<{
@@ -14,7 +15,7 @@ export async function Registeration(info: RegisterationEntred): Promise<{
   data?: UserInfromation;
 }> {
   try {
-    const response = await fetch("http://localhost:3000/api/register", {
+    const response = await fetch(`${getApiBaseUrl()}/api/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -40,7 +41,7 @@ export async function Loging(
   info: LoginInfoEntred
 ): Promise<{ success: boolean; error?: string; data?: UserInfromation }> {
   try {
-    const response = await fetch("http://localhost:3000/api/login", {
+    const response = await fetch(`${getApiBaseUrl()}/api/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -67,7 +68,7 @@ export async function getAllContacts(): Promise<{
   data?: UserInfromation[];
 }> {
   try {
-    const response = await fetch("http://localhost:3000/api/contacts", {
+    const response = await fetch(`${getApiBaseUrl()}/api/contacts`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     });
@@ -87,7 +88,7 @@ export async function getContacts(id: string): Promise<{
   data?: UserInfromation[];
 }> {
   try {
-    const response = await fetch("http://localhost:3000/api/contacts", {
+    const response = await fetch(`${getApiBaseUrl()}/api/contacts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -110,7 +111,7 @@ export async function getOneContcat(id: string): Promise<{
   data?: UserWithoutId;
 }> {
   try {
-    const response = await fetch("http://localhost:3000/api/contacts/contact", {
+    const response = await fetch(`${getApiBaseUrl()}/api/contacts/contact`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -137,7 +138,7 @@ export async function checkPassword(
 }> {
   try {
     const response = await fetch(
-      `http://localhost:3000/api/user?userID=${userid}`,
+      `${getApiBaseUrl()}/api/user?userID=${userid}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -163,7 +164,7 @@ export async function updatePassword(
 ): Promise<{ success: boolean; error?: string; data?: UserWithoutId }> {
   try {
     const response = await fetch(
-      `http://localhost:3000/api/user?userID=${userid}`,
+      `${getApiBaseUrl()}/api/user?userID=${userid}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -205,7 +206,7 @@ export async function updateImageOrUsername(
     let imageCloudUrl: string | undefined;
 
     if (hasImage) {
-      const uploadResponse = await fetch("http://localhost:3000/api/upload", {
+      const uploadResponse = await fetch(`${getApiBaseUrl()}/api/upload`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: imageUrl }),
