@@ -7,7 +7,9 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import Image from "next/image";
-import { Settings } from 'lucide-react';
+import { Settings } from "lucide-react";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import SettingsModal from "./settingsModal";
 
 export default function AudioWidget() {
   const [isLoading, setIsLoading] = useState(true);
@@ -15,7 +17,7 @@ export default function AudioWidget() {
     UserInfromation,
     "email" | "id"
   > | null>(null);
-
+  const [isOpen, setIsOpen] = useState(false);
   const searchParams = useSearchParams();
   const receive_id = searchParams.get("receiverId");
   useEffect(() => {
@@ -53,9 +55,7 @@ export default function AudioWidget() {
 
   return (
     <Card className="relative w-[350px] h-[450px] bg-[#27374D] text-white rounded-xl shadow-lg border border-gray-700">
-      <button className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-700 transition-colors">
-        <Settings className="size-6 text-gray-100" />
-      </button>
+      <SettingsModal />
       <CardContent className="flex flex-col items-center justify-center h-full gap-6 p-8">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
