@@ -7,9 +7,10 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import Image from "next/image";
-import { Settings } from "lucide-react";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import SettingsModal from "./settingsModal";
+import { useRouter } from "next/navigation";
+import { socket } from "@/lib/socket";
+import { useSession } from "next-auth/react";
 
 export default function AudioWidget() {
   const [isLoading, setIsLoading] = useState(true);
@@ -20,6 +21,9 @@ export default function AudioWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const searchParams = useSearchParams();
   const receive_id = searchParams.get("receiverId");
+  const router = useRouter();
+  const { data } = useSession();
+  const user_id = data?.user?.id as string;
   useEffect(() => {
     if (!receive_id) {
       setIsLoading(false);
@@ -45,6 +49,15 @@ export default function AudioWidget() {
 
     getUser();
   }, [receive_id]);
+
+  function handleCallClicked() {
+    socket.emit("call-user",{
+      receiverId: receive_id,
+      senderId: user_id,
+    });
+    router.push(`/audio-call/calling?receiverId=${receive_id}`);
+  }
+
 
   if (isLoading)
     return (
@@ -77,7 +90,10 @@ export default function AudioWidget() {
           <p className="text-gray-300 text-center text-lg">Ready to call?</p>
         </div>
 
-        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg  shadow-md hover:shadow-lg">
+        <button
+          onClick={handleCallClicked}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg  shadow-md hover:shadow-lg"
+        >
           Start Call
         </button>
       </CardContent>

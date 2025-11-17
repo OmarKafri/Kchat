@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { getFormatedTimeDateJordan } from "@/lib/utils";
 import { readMessage } from "@/lib/actions/messages";
+import { Phone } from "lucide-react";
 
 export type MessageContainerPropsAndInput = {
   user_id: string;
@@ -79,7 +80,7 @@ export function MessageContainer({
     socket.emit("join_conversation", conversation_id);
     
     getMessages();
-    // markMessages();
+   
     socket.emit("message_read",{reciver_id,conversation_id});
     socket.on("receive_message", (newMessage) => {
       if (newMessage.conversationId === conversation_id) {
@@ -117,12 +118,43 @@ export function MessageContainer({
             return messagesList?.map((msg, i) => {
               const isSender = msg.senderId === user_id;
               const { time, date } = getFormatedTimeDateJordan(msg.createdAt);
+              const isMissedCall = msg.content.startsWith("Missed Call From");
+              const messageKey = (msg as any).id || i;
 
               const showDateSeparator = lastDate !== date;
               lastDate = date;
 
+            
+              if (isMissedCall && isSender) {
+                return null;
+              }
+
+              
+              if (isMissedCall) {
+                return (
+                  <div key={messageKey}>
+                    {showDateSeparator && (
+                      <div className="flex justify-center my-2">
+                        <span className="bg-gray-600 text-gray-200 px-3 py-1 rounded-full text-xs">
+                          {date}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-center my-2">
+                      <div className="bg-red-900/30 border border-red-600/50 px-4 py-2 rounded-lg text-sm text-red-300 flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        <span>{msg.content}</span>
+                        <span className="text-xs text-red-400/70 ml-2">
+                          {time}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
               return (
-                <div key={i}>
+                <div key={messageKey}>
                   {showDateSeparator && (
                     <div className="flex justify-center my-2">
                       <span className="bg-gray-600 text-gray-200 px-3 py-1 rounded-full text-xs">

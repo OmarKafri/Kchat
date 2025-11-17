@@ -16,13 +16,36 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "./ui/button";
+import { useMediaStore } from "@/store/mediaStore";
+import { toast } from "sonner";
 
-export default function SettingsModal() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([]);
-  const [audioOutputs, setAudioOutputs] = useState<MediaDeviceInfo[]>([]);
-  const [selectedMicrophone, setSelectedMicrophone] = useState<string>("");
-  const [selectedAudioOutput, setSelectedAudioOutput] = useState<string>("");
+interface SettingsModalProps {
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function SettingsModal({
+  isOpen: externalIsOpen,
+  onOpenChange: externalOnOpenChange,
+}: SettingsModalProps = {}) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  const setIsOpen = externalOnOpenChange
+    ? externalOnOpenChange
+    : setInternalIsOpen;
+
+  const {
+    microphones,
+    audioOutputs,
+    selectedMicrophoneId,
+    selectedAudioOutputId,
+    microphoneStream,
+    setMicrophones,
+    setAudioOutputs,
+    setSelectedMicrophoneId,
+    setSelectedAudioOutputId,
+    setMicrophoneStream,
+  } = useMediaStore();
 
   useEffect(() => {
     const loadDevices = async () => {
@@ -38,45 +61,100 @@ export default function SettingsModal() {
         setMicrophones(microphones);
         setAudioOutputs(audioOutputs);
 
-        if (microphones.length > 0) {
-          setSelectedMicrophone(
-            (prev) => prev || microphones[0].label || "Default Microphone"
-          );
+        if (microphones.length > 0 && !selectedMicrophoneId) {
+          setSelectedMicrophoneId(microphones[0].deviceId);
         }
-        if (audioOutputs.length > 0) {
-          setSelectedAudioOutput(
-            (prev) => prev || audioOutputs[0].label || "Default Audio Output"
-          );
+        if (audioOutputs.length > 0 && !selectedAudioOutputId) {
+          setSelectedAudioOutputId(audioOutputs[0].deviceId);
         }
       } catch (error) {
         console.error("Error loading devices:", error);
       }
     };
     loadDevices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (selectedAudioOutputId) {
+      const audioElements = document.querySelectorAll("audio");
+      audioElements.forEach((audio) => {
+        if ("setSinkId" in audio) {
+          (audio as any)
+            .setSinkId(selectedAudioOutputId)
+            .catch((err: Error) =>
+              console.error("Error setting audio output:", err)
+            );
+        }
+      });
+    }
+  }, [selectedAudioOutputId]);
+
   const getMicrophoneDisplayValue = () => {
-    if (selectedMicrophone) return selectedMicrophone;
+    if (selectedMicrophoneId) {
+      const selected = microphones.find(
+        (mic) => mic.deviceId === selectedMicrophoneId
+      );
+      if (selected) return selected.label || "Unknown Microphone";
+    }
     if (microphones.length > 0)
       return microphones[0].label || "Default Microphone";
     return "No microphone available";
   };
 
   const getAudioOutputDisplayValue = () => {
-    if (selectedAudioOutput) return selectedAudioOutput;
+    if (selectedAudioOutputId) {
+      const selected = audioOutputs.find(
+        (output) => output.deviceId === selectedAudioOutputId
+      );
+      if (selected) return selected.label || "Unknown Audio Output";
+    }
     if (audioOutputs.length > 0)
       return audioOutputs[0].label || "Default Audio Output";
     return "No audio output available";
   };
 
+  const handleMicrophoneChange = async (deviceId: string) => {
+    setSelectedMicrophoneId(deviceId);
+    try {
+      if (microphoneStream) {
+        microphoneStream.getTracks().forEach((track) => track.stop());
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { deviceId: { exact: deviceId } },
+      });
+      setMicrophoneStream(stream);
+    } catch (error) {
+      console.error("Error changing microphone:", error);
+      toast.error("Failed to change microphone");
+    }
+  };
+
+  const handleAudioOutputChange = (deviceId: string) => {
+    setSelectedAudioOutputId(deviceId);
+    const audioElements = document.querySelectorAll("audio");
+    audioElements.forEach((audio) => {
+      if ("setSinkId" in audio) {
+        (audio as any)
+          .setSinkId(deviceId)
+          .catch((err: Error) =>
+            console.error("Error setting audio output:", err)
+          );
+      }
+    });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger
-        onClick={() => setIsOpen(true)}
-        className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-700 transition-colors"
-      >
-        <Settings className="size-6 text-gray-100" />
-      </DialogTrigger>
+      {!externalIsOpen && (
+        <DialogTrigger
+          onClick={() => setIsOpen(true)}
+          className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-700 transition-colors"
+        >
+          <Settings className="size-6 text-gray-100" />
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md bg-[#27374D] text-white">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
@@ -93,9 +171,7 @@ export default function SettingsModal() {
             </Label>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  className="w-full justify-between h-12 text-left font-normal"
-                >
+                <Button className="w-full justify-between h-12 text-left font-normal">
                   <span className="truncate">
                     {getMicrophoneDisplayValue()}
                   </span>
@@ -107,7 +183,9 @@ export default function SettingsModal() {
                   microphones.map((microphone) => (
                     <DropdownMenuItem
                       key={microphone.deviceId}
-                      onClick={() => setSelectedMicrophone(microphone.label)}
+                      onClick={() =>
+                        handleMicrophoneChange(microphone.deviceId)
+                      }
                     >
                       {microphone.label || "Unknown Microphone"}
                     </DropdownMenuItem>
@@ -127,9 +205,7 @@ export default function SettingsModal() {
             </Label>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  className="w-full justify-between h-12 text-left font-normal"
-                >
+                <Button className="w-full justify-between h-12 text-left font-normal">
                   <span className="truncate">
                     {getAudioOutputDisplayValue()}
                   </span>
@@ -141,7 +217,9 @@ export default function SettingsModal() {
                   audioOutputs.map((audioOutput) => (
                     <DropdownMenuItem
                       key={audioOutput.deviceId}
-                      onClick={() => setSelectedAudioOutput(audioOutput.label)}
+                      onClick={() =>
+                        handleAudioOutputChange(audioOutput.deviceId)
+                      }
                     >
                       {audioOutput.label || "Unknown Audio Output"}
                     </DropdownMenuItem>

@@ -10,6 +10,39 @@ type UpdatedInfo = {
   passwordHash?: string;
 };
 
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const userID = searchParams.get("userID");
+
+    if (!userID) {
+      return NextResponse.json({ message: "Missing userID" }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userID },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        image: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: user,
+    });
+  } catch (err) {
+    console.error("Get user error:", err);
+    return NextResponse.json({ message: "Server error" }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
