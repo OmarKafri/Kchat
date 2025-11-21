@@ -8,6 +8,6 @@ export default function Page() {
 
   useEffect(() => {
     router.replace("/login");
-  }, []);
+  }, [router]);
 
 }

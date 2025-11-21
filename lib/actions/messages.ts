@@ -19,6 +19,7 @@ export async function getMessagesForConversation(convo_id: string): Promise<{
 
     return { success: true, data: result };
   } catch (error) {
+    console.log(error);
     return { success: false, error: "Internal error" };
   }
 }
@@ -43,6 +44,7 @@ export async function createMessage(
 
     return { success: true, data: result };
   } catch (error) {
+    console.log(error);
     return { success: false, error: "Internal error" };
   }
 }
@@ -65,6 +67,7 @@ export async function unreadMessages(
     }
     return { success: true, data: result };
   } catch (error) {
+    console.log(error);
     return {success:false , error: "Internal error"}
   }
 }
@@ -89,6 +92,7 @@ export async function readMessage(
     }
     return { success: true };
   } catch (error) {
+    console.log(error);
     return {success:false , error: "Internal error"}
   }
 }

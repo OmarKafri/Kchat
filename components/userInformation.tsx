@@ -2,7 +2,7 @@
 
 import { getOneContcat } from "@/lib/actions/user";
 import { Video, Phone, CircleAlert } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { UserWithoutId } from "@/types/user";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -22,13 +22,11 @@ const buttons = [
 
 export function UserInfromation({ reciver_id }: UserInfromationProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string>();
   const [user, setUser] = useState<UserWithoutId>();
-  const gettingUser = async () => {
+  const gettingUser = useCallback(async () => {
     try {
       const result = await getOneContcat(reciver_id);
       if (!result.success || !result.data) {
-        setError(result.error);
         toast.error(result.error);
         return;
       }
@@ -38,16 +36,15 @@ export function UserInfromation({ reciver_id }: UserInfromationProps) {
         err instanceof Error
           ? err.message
           : "Something went wrong, try again later";
-      setError(message);
       toast.error(message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [reciver_id]);
 
   useEffect(() => {
     gettingUser();
-  }, []);
+  }, [gettingUser]);
 
   function version2() {
     toast.info("Will be Added later");
@@ -101,7 +98,10 @@ export function UserInfromation({ reciver_id }: UserInfromationProps) {
       <div className="flex items-center gap-5 mr-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <button onClick={audioCallClicked} className="text-gray-400 hover:text-gray-200 text-4xl p-0 cursor-pointer">
+            <button
+              onClick={audioCallClicked}
+              className="text-gray-400 hover:text-gray-200 text-4xl p-0 cursor-pointer"
+            >
               <Phone size={22} />
             </button>
           </TooltipTrigger>

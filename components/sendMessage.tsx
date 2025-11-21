@@ -1,11 +1,9 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 
 export default function SendMessage() {
-  const { data } = useSession();
 
   return (
     <div className="h-full flex justify-center items-center bg-gray-800">

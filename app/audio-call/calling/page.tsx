@@ -1,7 +1,13 @@
 "use client";
 import { getOneContcat } from "@/lib/actions/user";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  Suspense,
+} from "react";
 import { toast } from "sonner";
 import { UserInfromation } from "@/types/user";
 import Image from "next/image";
@@ -9,8 +15,25 @@ import { Mic, MicOff, PhoneOff, ScreenShare, Settings } from "lucide-react";
 import SettingsModal from "@/components/settingsModal";
 import { socket } from "@/lib/socket";
 import { useSession } from "next-auth/react";
+import Peer from "peerjs";
 
 export default function CallingPage() {
+  return (
+    <Suspense fallback={<CallingPageFallback />}>
+      <CallingPageContent />
+    </Suspense>
+  );
+}
+
+function CallingPageFallback() {
+  return (
+    <div className="flex h-screen w-screen items-center justify-center bg-black/70 text-white">
+      <p className="text-lg">Preparing your call…</p>
+    </div>
+  );
+}
+
+function CallingPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const receiverId = searchParams.get("receiverId");
@@ -24,6 +47,11 @@ export default function CallingPage() {
   const [showContent, setShowContent] = useState(false);
   const [showCapacity, setShowCapacity] = useState(false);
   const contentTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const peerRef = useRef<Peer | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const callRef = useRef<any>(null);
 
   useEffect(() => {
     if (!receiverId) {
@@ -48,13 +76,102 @@ export default function CallingPage() {
     getUser();
   }, [receiverId]);
 
-  const closeOrNavigate = () => {
+  useEffect(() => {
+    if (typeof window === "undefined") return; // only run in browser
+    if (!currentUserId) return;
+
+    // Prevent double initialization
+    if (peerRef.current && !peerRef.current.destroyed) {
+      console.log("📌 Peer already exists, skipping initialization");
+      return;
+    }
+
+    console.log("📌 Initializing PeerJS...");
+
+    // Let the server generate a random ID instead of using currentUserId
+    // This avoids ID conflicts and connection issues
+    // Use current hostname (works for both localhost and network IP)
+    const hostname =
+      typeof window !== "undefined" ? window.location.hostname : "localhost";
+    const myPeer = new Peer({
+      host: hostname,
+      port: 4000,
+      path: "/peerjs", // This should match where the server is mounted
+      debug: 3,
+    });
+
+    // Save reference for later use
+    peerRef.current = myPeer;
+
+    // Event: peer opened successfully
+    myPeer.on("open", (id) => {
+      console.log("✅ PeerJS connected. My ID:", id);
+    });
+
+    // Handle incoming call
+    myPeer.on("call", (call) => {
+      call.answer(localStreamRef.current || undefined);
+      call.on("stream", (stream) => {
+        if (remoteAudioRef.current) {
+          remoteAudioRef.current.srcObject = stream;
+          remoteAudioRef.current.play();
+        }
+      });
+      callRef.current = call;
+    });
+
+    // Event: peer connection closed
+    myPeer.on("close", () => {
+      console.warn("⚠️ PeerJS connection closed.");
+    });
+
+    // Event: peer disconnected from server
+    myPeer.on("disconnected", () => {
+      console.warn(
+        "⚠️ PeerJS disconnected from server. Attempting to reconnect..."
+      );
+      if (!myPeer.destroyed) {
+        myPeer.reconnect();
+      }
+    });
+
+    // Event: peer error
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    myPeer.on("error", (err: any) => {
+      console.error("❌ PeerJS Error:", err);
+      console.error("Error type:", err.type);
+      console.error("Error message:", err.message);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      // Don't destroy immediately - let it clean up on actual unmount
+    };
+  }, [currentUserId]);
+
+  // Separate cleanup effect for actual unmount
+  useEffect(() => {
+    return () => {
+      if (callRef.current) {
+        callRef.current.close();
+      }
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (peerRef.current && !peerRef.current.destroyed) {
+        peerRef.current.destroy();
+        peerRef.current = null;
+      }
+    };
+  }, []);
+
+  const closeOrNavigate = useCallback(() => {
     if (window.opener) {
       window.close();
     } else {
       router.push("/dashboard");
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     if (!currentUserId || !receiverId) return;
@@ -67,7 +184,60 @@ export default function CallingPage() {
       }
     });
 
-    const handleCallAccepted = (obj: any) => {
+    socket.on("no-response", (obj) => {
+      if (obj.senderId === currentUserId && obj.receiverId === receiverId) {
+        closeOrNavigate();
+      }
+    });
+
+    // Get microphone and start call
+    const startAudioCall = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        localStreamRef.current = stream;
+
+        if (peerRef.current?.id) {
+          socket.emit("send_peer_id", {
+            toUserId: receiverId,
+            fromUserId: currentUserId,
+            peerId: peerRef.current.id,
+          });
+        }
+      } catch (error) {
+        console.log(error);
+        toast.error("Failed to access microphone");
+      }
+    };
+
+    // Listen for peer ID from other user
+    socket.on(
+      "receive_peer_id",
+      async (data: { userId: string; peerId: string }) => {
+        if (
+          data.userId === receiverId &&
+          peerRef.current?.id &&
+          localStreamRef.current
+        ) {
+          const call = peerRef.current.call(
+            data.peerId,
+            localStreamRef.current
+          );
+          if (call) {
+            call.on("stream", (stream) => {
+              if (remoteAudioRef.current) {
+                remoteAudioRef.current.srcObject = stream;
+                remoteAudioRef.current.play();
+              }
+            });
+            callRef.current = call;
+          }
+        }
+      }
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleCallAccepted = async (obj: any) => {
       if (
         (obj.senderId === currentUserId && obj.receiverId === receiverId) ||
         (obj.receiverId === currentUserId && obj.senderId === receiverId)
@@ -86,6 +256,9 @@ export default function CallingPage() {
           setShowCapacity(true);
           contentTimeoutRef.current = null;
         }, 3000);
+
+        // Start audio call
+        await startAudioCall();
       }
     };
 
@@ -104,15 +277,27 @@ export default function CallingPage() {
       socket.off("call_rejected");
       socket.off("call_accepted", handleCallAccepted);
       socket.off("call_ended_by_user");
+      socket.off("receive_peer_id");
       if (contentTimeoutRef.current) {
         clearTimeout(contentTimeoutRef.current);
         contentTimeoutRef.current = null;
       }
+      // Cleanup streams
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
+        localStreamRef.current = null;
+      }
     };
-  }, [currentUserId, receiverId, searchParams, router]);
+  }, [currentUserId, receiverId, searchParams, router,closeOrNavigate]);
 
   const handleMicClick = () => {
-    setIsMicMuted(!isMicMuted);
+    const newMuted = !isMicMuted;
+    setIsMicMuted(newMuted);
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = !newMuted;
+      });
+    }
   };
 
   const handleSettingsClick = () => {
@@ -121,6 +306,19 @@ export default function CallingPage() {
 
   const handleCallEnd = () => {
     if (!currentUserId || !receiverId) return;
+
+    // Cleanup streams
+    if (callRef.current) {
+      callRef.current.close();
+      callRef.current = null;
+    }
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
+    }
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = null;
+    }
 
     socket.emit("end_call", {
       currentUserId: currentUserId,
@@ -185,7 +383,7 @@ export default function CallingPage() {
         </div>
       )}
 
-      <div className="relative z-10 flex flex-col justify-center items-center w-full h-full">
+      <div className="relative z-10 flex flex-col justify-center items-center w-full h-full ">
         <div className="flex-1 flex justify-center items-center">
           <Image
             className="rounded-full border-4 border-gray-700 shadow-2xl"
@@ -217,6 +415,13 @@ export default function CallingPage() {
       </div>
 
       <SettingsModal isOpen={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
+
+      <audio
+        ref={remoteAudioRef}
+        autoPlay
+        playsInline
+        style={{ display: "none" }}
+      />
     </div>
   );
 }

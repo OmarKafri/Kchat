@@ -1,7 +1,7 @@
 "use client";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { UserInfromation } from "@/types/user";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { getOneContcat } from "@/lib/actions/user";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -13,12 +13,27 @@ import { socket } from "@/lib/socket";
 import { useSession } from "next-auth/react";
 
 export default function AudioWidget() {
+  return (
+    <Suspense fallback={<AudioWidgetFallback />}>
+      <AudioWidgetContent />
+    </Suspense>
+  );
+}
+
+function AudioWidgetFallback() {
+  return (
+    <div className="flex justify-center items-center h-screen">
+      <Spinner className="size-10 text-gray-100" />
+    </div>
+  );
+}
+
+function AudioWidgetContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<Omit<
     UserInfromation,
     "email" | "id"
   > | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
   const searchParams = useSearchParams();
   const receive_id = searchParams.get("receiverId");
   const router = useRouter();

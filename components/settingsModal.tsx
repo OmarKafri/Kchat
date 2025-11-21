@@ -80,6 +80,7 @@ export default function SettingsModal({
       const audioElements = document.querySelectorAll("audio");
       audioElements.forEach((audio) => {
         if ("setSinkId" in audio) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (audio as any)
             .setSinkId(selectedAudioOutputId)
             .catch((err: Error) =>
@@ -136,6 +137,7 @@ export default function SettingsModal({
     const audioElements = document.querySelectorAll("audio");
     audioElements.forEach((audio) => {
       if ("setSinkId" in audio) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (audio as any)
           .setSinkId(deviceId)
           .catch((err: Error) =>
@@ -160,7 +162,7 @@ export default function SettingsModal({
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription className="text-gray-300 mt-2">
             Make changes to your Input and Output devices. Click save when
-            you're done.
+            youre done.
           </DialogDescription>
         </DialogHeader>
 

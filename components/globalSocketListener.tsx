@@ -18,7 +18,7 @@ import Image from "next/image";
 import { Phone, PhoneOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const callTimeout = 25000; // thjis means 25 seconds
+const callTimeout = 5000; // thjis means 25 seconds
 
 export function GlobalSocketListener() {
   const { data, status } = useSession();

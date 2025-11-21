@@ -8,7 +8,7 @@ export default function ConverstaionPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const convo_id = params.id as string;
-  const { data, status } = useSession();
+  const { data } = useSession();
   const user_id = searchParams.get("receiverId") as string;
   const senderId = data?.user?.id as string;
 

@@ -32,7 +32,6 @@ export default function Register() {
   const {
     register,
     handleSubmit,
-    setError,
     formState: { errors, isSubmitting },
   } = useForm<formFields>({
     resolver: zodResolver(schema),
@@ -49,6 +48,7 @@ export default function Register() {
           password: data.password,
         });
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.log(e);
       toast.error(e);

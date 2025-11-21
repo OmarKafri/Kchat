@@ -32,6 +32,7 @@ export async function addConverstaion(
     }
     return { success: true, data: result.conversation };
   } catch (error) {
+    console.log(error);
     return {success:false , error: "Internal error"}
   }
 }

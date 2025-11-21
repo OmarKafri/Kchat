@@ -1,15 +1,13 @@
 "use client";
 
-import { useChatStore } from "@/store/chatStore";
 import { MessageInput } from "./messageInput";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { socket } from "@/lib/socket";
 import { messages } from "@/types/user";
 import { getMessagesForConversation } from "@/lib/actions/messages";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { getFormatedTimeDateJordan } from "@/lib/utils";
-import { readMessage } from "@/lib/actions/messages";
 import { Phone } from "lucide-react";
 
 export type MessageContainerPropsAndInput = {
@@ -23,9 +21,7 @@ export function MessageContainer({
   conversation_id,
   reciver_id
 }: MessageContainerPropsAndInput) {
-  const { message, setMessage } = useChatStore();
   const [messagesList, setMessagesList] = useState<messages[]>();
-  const [error, setError] = useState<string | undefined>("");
   const [isLoading, setIsLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -35,29 +31,10 @@ export function MessageContainer({
     }
   }, [isLoading, messagesList]);
 
-  const markMessages = async () => {
-    try {
-      const result = await readMessage(user_id, conversation_id);
-      if (!result.success) {
-        setError(result.error);
-        toast.error(result.error);
-      }
-    
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Something went wrong, try again later";
-      setError(message);
-      toast.error(message);
-    }
-  };
-
-  const getMessages = async () => {
+  const getMessages = useCallback(async () => {
     try {
       const result = await getMessagesForConversation(conversation_id);
       if (!result.success) {
-        setError(result.error);
         toast.error(result.error);
       } else {
         setMessagesList(result.data);
@@ -67,12 +44,11 @@ export function MessageContainer({
         error instanceof Error
           ? error.message
           : "Something went wrong, try again later";
-      setError(message);
       toast.error(message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [conversation_id]);
 
   useEffect(() => {
     if (!user_id || !conversation_id) return;
@@ -92,7 +68,7 @@ export function MessageContainer({
       socket.emit("leave_conversation", conversation_id);
       socket.off("receive_message");
     };
-  }, [conversation_id,user_id]);
+  }, [conversation_id,user_id,reciver_id,getMessages]);
 
   if (isLoading) {
     return (
@@ -119,6 +95,7 @@ export function MessageContainer({
               const isSender = msg.senderId === user_id;
               const { time, date } = getFormatedTimeDateJordan(msg.createdAt);
               const isMissedCall = msg.content.startsWith("Missed Call From");
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const messageKey = (msg as any).id || i;
 
               const showDateSeparator = lastDate !== date;
