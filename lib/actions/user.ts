@@ -225,7 +225,7 @@ export async function updateImageOrUsername(
     if (hasUsername) bodyToSend.username = username.trim();
     if (imageCloudUrl) bodyToSend.image = imageCloudUrl;
 
-    const response = await fetch(`http://localhost:3000/api/user?userID=${userid}`, {
+    const response = await fetch(`${getApiBaseUrl()}/api/user?userID=${userid}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(bodyToSend),
