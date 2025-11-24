@@ -1,13 +1,7 @@
 "use client";
 import { getOneContcat } from "@/lib/actions/user";
 import { useSearchParams, useRouter } from "next/navigation";
-import {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-  Suspense,
-} from "react";
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { toast } from "sonner";
 import { UserInfromation } from "@/types/user";
 import Image from "next/image";
@@ -77,10 +71,9 @@ function CallingPageContent() {
   }, [receiverId]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return; // only run in browser
+    if (typeof window === "undefined") return;
     if (!currentUserId) return;
 
-    // Prevent double initialization
     if (peerRef.current && !peerRef.current.destroyed) {
       console.log("📌 Peer already exists, skipping initialization");
       return;
@@ -88,22 +81,16 @@ function CallingPageContent() {
 
     console.log("📌 Initializing PeerJS...");
 
-    // Let the server generate a random ID instead of using currentUserId
-    // This avoids ID conflicts and connection issues
-    // Use current hostname (works for both localhost and network IP)
-    const hostname =
-      typeof window !== "undefined" ? window.location.hostname : "localhost";
+    
     const myPeer = new Peer({
-      host: hostname,
-      port: 4000,
-      path: "/peerjs", // This should match where the server is mounted
+      host: process.env.NEXT_PUBLIC_BACKEND_URL || "localhost",
+      port: 443,
+      path: "/peerjs",
       debug: 3,
     });
 
-    // Save reference for later use
     peerRef.current = myPeer;
 
-    // Event: peer opened successfully
     myPeer.on("open", (id) => {
       console.log("✅ PeerJS connected. My ID:", id);
     });
@@ -143,13 +130,11 @@ function CallingPageContent() {
       console.error("Error message:", err.message);
     });
 
-    // Cleanup on unmount
     return () => {
       // Don't destroy immediately - let it clean up on actual unmount
     };
   }, [currentUserId]);
 
-  // Separate cleanup effect for actual unmount
   useEffect(() => {
     return () => {
       if (callRef.current) {
@@ -190,7 +175,6 @@ function CallingPageContent() {
       }
     });
 
-    // Get microphone and start call
     const startAudioCall = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -288,7 +272,7 @@ function CallingPageContent() {
         localStreamRef.current = null;
       }
     };
-  }, [currentUserId, receiverId, searchParams, router,closeOrNavigate]);
+  }, [currentUserId, receiverId, searchParams, router, closeOrNavigate]);
 
   const handleMicClick = () => {
     const newMuted = !isMicMuted;
