@@ -81,11 +81,10 @@ function CallingPageContent() {
 
     console.log("📌 Initializing PeerJS...");
 
-    const hostname =
-      typeof window !== "undefined" ? window.location.hostname : "localhost";
+    
     const myPeer = new Peer({
-      host: hostname,
-      port: 4000,
+      host: "kchatbackend.fly.dev",
+      port: 443,
       path: "/peerjs",
       debug: 3,
     });
