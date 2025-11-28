@@ -9,6 +9,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useEffect } from "react";
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),
@@ -18,6 +20,7 @@ const schema = z.object({
 type FormFields = z.infer<typeof schema>;
 
 export default function Login() {
+  const { status } = useSession();
   const router = useRouter();
   const {
     register,
@@ -26,6 +29,12 @@ export default function Login() {
   } = useForm<FormFields>({
     resolver: zodResolver(schema),
   });
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/dashboard");
+    }
+  }, [status]);
 
   const onSubmit: SubmitHandler<FormFields> = async (data) => {
     try {
