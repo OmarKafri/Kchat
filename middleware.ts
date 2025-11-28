@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-export const runtime = "nodejs";
 
-export async function middleware(req: Request) {
-  const session = await auth();
-  const { pathname } = new URL(req.url);
+export default auth((req) => {
+  const { pathname } = req.nextUrl;
+  const session = req.auth;
 
   if (session && (pathname === "/login" || pathname === "/register")) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
@@ -15,7 +14,7 @@ export async function middleware(req: Request) {
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: ["/dashboard/:path*", "/login", "/register"],
