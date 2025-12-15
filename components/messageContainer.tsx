@@ -8,7 +8,7 @@ import { getMessagesForConversation } from "@/lib/actions/messages";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { getFormatedTimeDateJordan } from "@/lib/utils";
-import { Phone } from "lucide-react";
+import { Phone, Bot } from "lucide-react";
 
 export type MessageContainerPropsAndInput = {
   user_id: string;
@@ -64,9 +64,16 @@ export function MessageContainer({
       }
     });
 
+    socket.on("receive_bot_message", (botMessage) => {
+      if (botMessage.conversationId === conversation_id) {
+        setMessagesList((prev) => [...(prev ?? []), botMessage]);
+      }
+    });
+
     return () => {
       socket.emit("leave_conversation", conversation_id);
       socket.off("receive_message");
+      socket.off("receive_bot_message");
     };
   }, [conversation_id,user_id,reciver_id,getMessages]);
 
@@ -93,6 +100,7 @@ export function MessageContainer({
             let lastDate: string | null = null;
             return messagesList?.map((msg, i) => {
               const isSender = msg.senderId === user_id;
+              const isBotMessage = msg.content.startsWith("🤖 ");
               const { time, date } = getFormatedTimeDateJordan(msg.createdAt);
               const isMissedCall = msg.content.startsWith("Missed Call From");
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,6 +114,44 @@ export function MessageContainer({
                 return null;
               }
 
+            
+              if (isBotMessage) {
+               
+                const botContent = msg.content.replace(/^🤖 /, "");
+                return (
+                  <div key={messageKey}>
+                    {showDateSeparator && (
+                      <div className="flex justify-center my-2">
+                        <span className="bg-gray-600 text-gray-200 px-3 py-1 rounded-full text-xs">
+                          {date}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-center my-3">
+                      <div className="max-w-2xl w-full bg-gradient-to-r from-purple-900/40 to-blue-900/40 border border-purple-500/30 rounded-xl px-4 py-3 shadow-lg">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0 shadow-md">
+                            <Bot className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-semibold text-purple-300">
+                                KChat Bot
+                              </span>
+                              <span className="text-xs text-purple-400/70">
+                                {time}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-100 break-words whitespace-pre-wrap leading-relaxed">
+                              {botContent}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
               
               if (isMissedCall) {
                 return (
@@ -145,13 +191,13 @@ export function MessageContainer({
                     }`}
                   >
                     <div
-                      className={`max-w-xs px-4 py-2 rounded-2xl text-sm ${
+                      className={`max-w-xs  px-4 py-2 rounded-2xl text-sm ${
                         isSender
                           ? "bg-green-800 text-white rounded-br-none"
                           : "bg-gray-700 text-gray-100 rounded-bl-none"
                       }`}
                     >
-                      <p>{msg.content}</p>
+                      <p className="break-words whitespace-pre-wrap">{msg.content}</p>
                       <span className="text-xs text-gray-400 self-end">
                         {time}
                       </span>
